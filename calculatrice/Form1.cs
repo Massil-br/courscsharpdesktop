@@ -14,15 +14,17 @@ namespace calculatrice
         private string operandePrecedent = "";     // Le nombre avant l'opérateur (ex: "5" dans 5+3)
         private string operateur = "";             // L'opérateur choisi (+, -, ×, ÷)
         private bool nouvelleEntree = true;        // Vrai = le prochain chiffre remplace l'afficheur
-        private List<string> history  = [];
-        private FlowLayoutPanel historyPanel = null!;
+
+        private List<string> historique = new();
+        private FlowLayoutPanel panelHistorique = null!;
+
         public Form1()
         {
             InitializeComponent();
 
             // Configuration de la fenêtre principale
             Text = "Calculatrice";                                 // Titre de la fenêtre
-            Size = new Size(320, 700);                             // Taille : 320 x 480 pixels
+            Size = new Size(400, 800);                             // Taille : 400 x 700 pixels
             StartPosition = FormStartPosition.CenterScreen;       // Centrer à l'écran
             FormBorderStyle = FormBorderStyle.FixedSingle;        // Empêcher le redimensionnement
             MaximizeBox = false;                                   // Pas de bouton agrandir
@@ -32,6 +34,7 @@ namespace calculatrice
             CreerInterface();
         }
 
+        // On va remplir ces méthodes dans les étapes suivantes
         private void CreerInterface()
         {
             // =============================================
@@ -99,13 +102,46 @@ namespace calculatrice
             }
 
             // =============================================
-            // 4. AJOUTER À LA FENÊTRE
+            // 5. PANNEAU HISTORIQUE (en bas)
             // =============================================
-            // IMPORTANT : l'ordre d'ajout compte !
-            // D'abord la grille (elle se met en Fill), puis l'afficheur (il se met en Top)
-            Controls.Add(grille);
-            Controls.Add(afficheur);
+            var panelWrapper = new Panel
+            {
+                Dock = DockStyle.Bottom,
+                Height = 160,
+                BackColor = Color.FromArgb(20, 28, 40),
+                Padding = new Padding(8, 4, 8, 4)
+            };
+
+            var titre = new Label
+            {
+                Text = "Historique",
+                ForeColor = Color.FromArgb(150, 160, 175),
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                Dock = DockStyle.Top,
+                Height = 22
+            };
+
+            panelHistorique = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                FlowDirection = FlowDirection.TopDown,
+                AutoSize = false,
+                BackColor = Color.FromArgb(20, 28, 40)
+            };
+
+            panelWrapper.Controls.Add(panelHistorique);
+            panelWrapper.Controls.Add(titre);
+
+            // =============================================
+            // 5. AJOUTER À LA FENÊTRE (ORDRE IMPORTANT !)
+            // =============================================
+            // WinForms : le dernier ajouté est traité EN PREMIER pour le docking
+            // Donc : Fill en premier, Bottom ensuite, Top en dernier
+            Controls.Add(grille);         // Fill (le reste)
+            Controls.Add(panelWrapper);   // Bottom (160px)
+            Controls.Add(afficheur);      // Top (80px) — traité en premier car ajouté en dernier
         }
+
 
         /// <summary>
         /// Crée un bouton de la calculatrice avec le bon style
@@ -157,6 +193,7 @@ namespace calculatrice
 
             return btn;
         }
+
 
         /// <summary>
         /// Gère le clic sur n'importe quel bouton de la calculatrice.
@@ -280,6 +317,7 @@ namespace calculatrice
             }
         }
 
+
         /// <summary>
         /// Effectue le calcul entre operandePrecedent et l'afficheur,
         /// selon l'opérateur choisi.
@@ -294,8 +332,8 @@ namespace calculatrice
 
             // Convertir les textes en nombres
             // TryParse retourne false si la conversion échoue (texte invalide)
-            if (!double.TryParse(operandePrecedent, out double a)
-               ||  !double.TryParse(afficheur.Text, out double b))
+            if (!double.TryParse(operandePrecedent, out double a) ||
+                !double.TryParse(afficheur.Text, out double b))
             {
                 afficheur.Text = "Erreur";
                 nouvelleEntree = true;
@@ -323,10 +361,38 @@ namespace calculatrice
             }
 
             // Réinitialiser pour le prochain calcul
+            string symboleOp = operateur;  // on le récupère avant de le vider
+            string entree = $"{a} {symboleOp} {b} = {resultat}";
+            historique.Insert(0, entree);          // insérer au début (le plus récent en premier)
+            if (historique.Count > 5)
+                historique.RemoveAt(5);            // garder au maximum 5 entrées
+            MettreAJourHistorique();
+
             operateur = "";
             operandePrecedent = "";
             nouvelleEntree = true;
         }
 
+
+            /// <summary>
+    /// Rafraîchit le panneau historique à partir de la liste <see cref="historique"/>.
+    /// </summary>
+    private void MettreAJourHistorique()
+    {
+        panelHistorique.Controls.Clear();
+
+        foreach (string entree in historique)
+        {
+            var lbl = new Label
+            {
+                Text = entree,
+                ForeColor = Color.FromArgb(200, 210, 225),
+                Font = new Font("Segoe UI", 10),
+                AutoSize = true,
+                Margin = new Padding(2, 1, 2, 1)
+            };
+            panelHistorique.Controls.Add(lbl);
+        }
+    }
     }
 }
